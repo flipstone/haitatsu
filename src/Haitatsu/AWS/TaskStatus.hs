@@ -23,21 +23,23 @@ getTaskStatus :: TaskSelector -> Haitatsu (TaskStatus ())
 getTaskStatus selector =
     do echo Normal ("    checking status of task " <> selectorName selector)
        config <- asks environmentConfig
-       status (serviceName config)
+       status (clusterName config) (serviceName config)
 
   where
-    status service = Haitatsu (dry service) (wet service)
+    status cluster service = Haitatsu (dry cluster service) (wet cluster service)
 
-    dry service = do
+    dry _ _ = do
       tell $ D.singleton ("    this is a dry run - pretending the service is healthy")
       pure $ Right ()
 
-    wet service = taskStatus service selector <$> describeService service
+    wet cluster service = taskStatus service selector
+                      <$> describeService cluster service
 
-describeService :: T.Text -> WetRun DescribeServicesResponse
-describeService serviceName =
-  sendAWS $ describeServices &
-            ds1Services .~ [serviceName]
+describeService :: T.Text -> T.Text -> WetRun DescribeServicesResponse
+describeService clusterName serviceName =
+  sendAWS $ describeServices
+          & ds1Services .~ [serviceName]
+          & ds1Cluster .~ Just clusterName
 
 type TaskStatus a = Either String a
 
