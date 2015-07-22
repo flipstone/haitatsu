@@ -32,6 +32,7 @@ import            Control.Monad.Reader
 import            Control.Monad.Trans.AWS
 import            Control.Monad.Writer
 import qualified  Data.Text as T
+import            Network.AWS.ECS.Types
 
 import            Data.Aeson.Substitution
 
@@ -48,6 +49,7 @@ data EnvironmentConfig = EnvironmentConfig {
     taskDefinitionTemplateFile :: FilePath
   , clusterName :: T.Text
   , serviceName :: T.Text
+  , loadBalancers :: [LoadBalancer]
   , configRegion :: Region
   , desiredCount :: Int
   , healthyWaitTimeSeconds :: Int

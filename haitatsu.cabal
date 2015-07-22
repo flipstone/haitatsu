@@ -17,7 +17,6 @@ cabal-version:       >=1.10
 
 executable haitatsu
   main-is:             Main.hs
-  ld-options:          -static
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,

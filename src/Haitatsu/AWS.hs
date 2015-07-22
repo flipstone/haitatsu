@@ -1,5 +1,6 @@
 module Haitatsu.AWS
-  ( module Haitatsu.AWS.Credentials
+  ( module Haitatsu.AWS.CreateService
+  , module Haitatsu.AWS.Credentials
   , module Haitatsu.AWS.HealthCheck
   , module Haitatsu.AWS.InitialStatus
   , module Haitatsu.AWS.RegisterTask
@@ -7,6 +8,7 @@ module Haitatsu.AWS
   , module Haitatsu.AWS.UpdateService
   ) where
 
+import          Haitatsu.AWS.CreateService
 import          Haitatsu.AWS.Credentials
 import          Haitatsu.AWS.HealthCheck
 import          Haitatsu.AWS.InitialStatus

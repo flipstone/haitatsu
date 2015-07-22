@@ -9,6 +9,7 @@ import            Options.Applicative
 import            System.FilePath
 
 import            Data.Aeson.Substitution
+import            Haitatsu.Command
 import            Haitatsu.Types
 
 data Options = Options {
@@ -17,6 +18,7 @@ data Options = Options {
   , optEnvironment :: Environment
   , optVerbosity :: Verbosity
   , optContext :: Context
+  , optCommand :: Command
   }
 
 optRelativePath :: Options -> FilePath -> FilePath
@@ -60,6 +62,40 @@ options = Options
      <> value (contextList [])
      <> help "Set context variables"
       )
+
+  <*> subparser (
+        command "deliver" (info (pure Deliver)
+                                (progDesc "Deliver the app to ECS"))
+
+     <> command "register" (info (pure RegisterTask)
+                                 (progDesc "Register a the task with ECS"))
+
+     <> command "create" (info createServiceOptions
+                               (progDesc "Create a new ecs service"))
+
+     <> command "check" (info healthCheckOptions
+                              (progDesc "Check the deployment status of a task revision"))
+     )
+
+healthCheckOptions :: Parser Command
+healthCheckOptions =
+  HealthCheck <$> argument taskRevReader (metavar "family:revision")
+
+createServiceOptions :: Parser Command
+createServiceOptions =
+  CreateService <$> argument taskRevReader (metavar "family:revision")
+
+taskRevReader :: ReadM TaskRevision
+taskRevReader = do
+  s <- str
+  case T.splitOn ":" (T.pack s) of
+    [family, revision] ->
+      pure $ TaskRevision {
+          taskFamily = family
+        , taskRevision = revision
+        }
+
+    _ -> readerError "Invalid task revision. Must be in the format family:revision"
 
 runOptions :: (Options -> IO a) -> IO a
 runOptions main = execParser opts >>= main

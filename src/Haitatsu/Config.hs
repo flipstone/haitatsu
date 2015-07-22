@@ -44,6 +44,7 @@ instance FromJSON EnvironmentConfig where
     EnvironmentConfig <$> (o .: "task_definition_template")
                       <*> (o .: "cluster_name")
                       <*> (o .: "service_name")
+                      <*> (o .:? "load_balancers" .!= [])
                       <*> (o .: "region")
                       <*> (o .: "desired_count")
                       <*> (o .: "health_check_timeout_seconds")

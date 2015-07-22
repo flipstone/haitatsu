@@ -5,6 +5,7 @@ import            Data.Monoid
 import            System.Exit
 
 import            Haitatsu.AWS
+import            Haitatsu.Command
 import            Haitatsu.Config
 import            Haitatsu.Delivery
 import            Haitatsu.DryRun
@@ -17,9 +18,11 @@ runHaitatsu options = do
   config <- loadConfig (optConfigFile options)
   runData <- loadRunData options config
 
-  if optIsDryRun options
-    then dryRun runData deliver
-    else wetRun runData deliver
+  let runner = if optIsDryRun options
+               then dryRun
+               else wetRun
+
+  runner runData $ runCommand (optCommand options)
 
 runMain :: IO ()
 runMain =
