@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+
+if [ "$(which docker-machine)" != "" ]; then
+  eval $(docker-machine env dev)
+fi;
+
+HAITATSU=$PWD
+ROOT=$(dirname $HAITATSU)
+
+docker run \
+  -it \
+  --rm \
+  -v $HAITATSU:/haitatsu \
+  -v $HAITATSU/.cabal:/root/.cabal \
+  -v $ROOT/.aws:/root/.aws \
+  --workdir=/haitatsu \
+  flipstone/haitatsu-dev:20150722-1000 \
+  $*

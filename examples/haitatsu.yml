@@ -1,0 +1,20 @@
+staging:
+  task_definition_template: task.yml
+  cluster_name: staging-cluster
+  service_name: staging-service
+  region: NorthVirginia
+  desired_count: 2
+  health_check_timeout_seconds: 300
+  context:
+    version: staging-version
+
+production:
+  task_definition_template: task.yml
+  cluster_name: production-cluster
+  service_name: production-service
+  region: NorthVirginia
+  desired_count: 4
+  health_check_timeout_seconds: 600
+  context:
+    version: production-version
+

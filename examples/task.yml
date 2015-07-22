@@ -1,0 +1,6 @@
+family: test-project
+containerDefinitions:
+  - name: project
+    image: company/project:${version}
+
+volumes: []

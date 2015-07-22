@@ -1,0 +1,4 @@
+.cabal
+.cabal-sandbox
+dist
+containers/release/haitatsu
