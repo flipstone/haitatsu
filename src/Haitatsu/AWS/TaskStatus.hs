@@ -12,6 +12,7 @@ import            Control.Concurrent
 import            Control.Lens
 import            Control.Monad.Writer
 import qualified  Data.DList as D
+import            Data.Foldable
 import            Data.Monoid
 import qualified  Data.Text as T
 import            Data.Typeable
@@ -82,28 +83,25 @@ primary =
   where
     isMatching d = (d ^. dStatus) == Just "PRIMARY"
 
-findDeployment :: TaskSelector
-               -> ContainerService
-               -> TaskStatus Deployment
-findDeployment selector service =
-    case service ^. csDeployments of
-    [d] | isSelected selector d -> Right d
-    [_] -> Left "Current deployment does not match."
-    [] -> Left "No deployments found."
-    _ -> Left "Multiple deployments currently active."
+deploymentStatus :: TaskSelector -> [Deployment] -> TaskStatus RunningCount
+deploymentStatus selector deployments =
+  case find (isSelected selector) deployments of
+  Nothing -> Left "Deployment not found!"
+  Just deployment -> do
+    let desired = deployment ^. dDesiredCount
+        running = deployment ^. dRunningCount
 
-deploymentStatus :: Deployment -> TaskStatus RunningCount
-deploymentStatus deployment =
-    if desired == running
-    then maybe (Left "No running count found!")
-               (Right . RunningCount)
-               running
-    else Left msg
-  where
-    desired = deployment ^. dDesiredCount
-    running = deployment ^. dRunningCount
-    msg = show desired <> " desired / " <>
-          show running <> " running."
+    when (desired /= running) $
+      Left $ show desired <> " desired / " <>
+             show running <> " running."
+
+    when (length deployments > 1) $
+      Left "Multiple deployments currently active."
+
+    maybe (Left "No running count found!")
+          (Right . RunningCount)
+          running
+
 
 taskStatus :: T.Text
            -> TaskSelector
@@ -111,8 +109,7 @@ taskStatus :: T.Text
            -> TaskStatus RunningCount
 taskStatus serviceName selector rsp = do
   service <- findService serviceName rsp
-  deployment <- findDeployment selector service
-  deploymentStatus deployment
+  deploymentStatus selector (service ^. csDeployments)
 
 newtype HealthCheckFailure = HealthCheckFailure String
   deriving (Show, Typeable)
