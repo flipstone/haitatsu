@@ -86,10 +86,11 @@ findDeployment :: TaskSelector
                -> ContainerService
                -> TaskStatus Deployment
 findDeployment selector service =
-    case filter (isSelected selector) (service ^. csDeployments) of
-    [] -> Left "Deployment not found!"
-    [d] -> Right d
-    _ -> Left "Multiple Deployments found!"
+    case service ^. csDeployments of
+    [d] | isSelected selector d -> Right d
+    [_] -> Left "Current deployment does not match."
+    [] -> Left "No deployments found."
+    _ -> Left "Multiple deployments currently active."
 
 deploymentStatus :: Deployment -> TaskStatus RunningCount
 deploymentStatus deployment =
