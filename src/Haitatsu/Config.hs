@@ -44,6 +44,7 @@ instance FromJSON EnvironmentConfig where
     EnvironmentConfig <$> (o .: "task_definition_template")
                       <*> (o .: "cluster_name")
                       <*> (o .: "service_name")
+                      <*> (o .:? "service_role")
                       <*> (o .:? "load_balancers" .!= [])
                       <*> (o .: "region")
                       <*> (o .: "desired_count")
@@ -51,6 +52,14 @@ instance FromJSON EnvironmentConfig where
                       <*> (o .:? "context" .!= contextList [])
 
   parseJSON _ = fail "Invalid environment config"
+
+instance FromJSON LoadBalancerConfig where
+  parseJSON (Object o) =
+    LoadBalancerConfig <$> (o .: "load_balancer_name")
+                       <*> (o .: "container_name")
+                       <*> (o .: "container_port")
+
+  parseJSON _ = fail "Loadbalancer must have attributes."
 
 instance FromJSON Context where
   parseJSON (Object o) = contextMap <$> traverse parseJSON o
