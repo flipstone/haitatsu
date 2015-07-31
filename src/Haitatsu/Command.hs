@@ -11,6 +11,7 @@ data Command =
     Deliver
   | RegisterTask
   | CreateService AWS.TaskRevision
+  | UpdateService AWS.TaskRevision
   | HealthCheck AWS.TaskRevision
 
 deliver :: Haitatsu ()
@@ -29,10 +30,14 @@ create = void . AWS.createService
 healthCheck :: AWS.TaskRevision -> Haitatsu ()
 healthCheck = AWS.healthCheck
 
+updateService :: AWS.TaskRevision -> Haitatsu ()
+updateService = AWS.updateService
+
 runCommand :: Command -> Haitatsu ()
 runCommand Deliver = deliver
 runCommand RegisterTask = register
 runCommand (CreateService taskRev) = create taskRev
 runCommand (HealthCheck taskRev) = healthCheck taskRev
+runCommand (UpdateService taskRev) = updateService taskRev
 
 

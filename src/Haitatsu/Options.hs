@@ -73,6 +73,9 @@ options = Options
      <> command "create" (info createServiceOptions
                                (progDesc "Create a new ecs service"))
 
+     <> command "update" (info updateServiceOptions
+                               (progDesc "Update a the ecs service to run the given task revision"))
+
      <> command "check" (info healthCheckOptions
                               (progDesc "Check the deployment status of a task revision"))
      )
@@ -84,6 +87,10 @@ healthCheckOptions =
 createServiceOptions :: Parser Command
 createServiceOptions =
   CreateService <$> argument taskRevReader (metavar "family:revision")
+
+updateServiceOptions :: Parser Command
+updateServiceOptions =
+  UpdateService <$> argument taskRevReader (metavar "family:revision")
 
 taskRevReader :: ReadM TaskRevision
 taskRevReader = do
