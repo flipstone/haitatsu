@@ -18,7 +18,7 @@ initialStatus = do
   status <- getTaskStatus primary
 
   case status of
-    Right () -> do
+    Right _ -> do
       echo Normal "  = Current deployment is healthy"
       echo Normal ""
 

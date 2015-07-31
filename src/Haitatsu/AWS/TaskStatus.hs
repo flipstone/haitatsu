@@ -4,6 +4,7 @@ module Haitatsu.AWS.TaskStatus
   , primary
   , revision
   , TaskStatus(..)
+  , RunningCount(..)
   ) where
 
 import            Control.Applicative
@@ -19,7 +20,10 @@ import            Network.AWS.ECS
 import            Haitatsu.AWS.RegisterTask
 import            Haitatsu.Types
 
-getTaskStatus :: TaskSelector -> Haitatsu (TaskStatus ())
+newtype RunningCount = RunningCount Int
+  deriving (Show, Eq)
+
+getTaskStatus :: TaskSelector -> Haitatsu (TaskStatus RunningCount)
 getTaskStatus selector =
     do echo Normal ("    checking status of task " <> selectorName selector)
        config <- asks environmentConfig
@@ -30,7 +34,7 @@ getTaskStatus selector =
 
     dry _ _ = do
       tell $ D.singleton ("    this is a dry run - pretending the service is healthy")
-      pure $ Right ()
+      pure $ Right (RunningCount 1)
 
     wet cluster service = taskStatus service selector
                       <$> describeService cluster service
@@ -87,10 +91,12 @@ findDeployment selector service =
     [d] -> Right d
     _ -> Left "Multiple Deployments found!"
 
-deploymentStatus :: Deployment -> TaskStatus ()
+deploymentStatus :: Deployment -> TaskStatus RunningCount
 deploymentStatus deployment =
     if desired == running
-    then Right ()
+    then maybe (Left "No running count found!")
+               (Right . RunningCount)
+               running
     else Left msg
   where
     desired = deployment ^. dDesiredCount
@@ -101,7 +107,7 @@ deploymentStatus deployment =
 taskStatus :: T.Text
            -> TaskSelector
            -> DescribeServicesResponse
-           -> TaskStatus ()
+           -> TaskStatus RunningCount
 taskStatus serviceName selector rsp = do
   service <- findService serviceName rsp
   deployment <- findDeployment selector service

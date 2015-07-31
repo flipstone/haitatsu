@@ -14,6 +14,9 @@ import            Haitatsu.Types
 waitTimeSeconds :: Int
 waitTimeSeconds = 30
 
+bounceCheckTimeSeconds :: Int
+bounceCheckTimeSeconds = 5
+
 waitTimeMicroseconds :: Int
 waitTimeMicroseconds = waitTimeSeconds *
                        1000 * -- milliseconds
@@ -35,7 +38,13 @@ waitForHealthy taskRev timeWaited = do
   status <- getTaskStatus (revision taskRev)
 
   case status of
-    Right () -> echo Normal "  = Task is healthy!"
+    Right (RunningCount 1) -> do
+      echo Normal "  = Only 1 Task is running, starting bounce check."
+      ensureSingleProcessNotBouncing taskRev 2
+
+    Right _ -> do
+      echo Normal "  = Task is healthy!"
+
     Left err -> do
       echo Normal ("    " <> T.pack err)
 
@@ -44,6 +53,22 @@ waitForHealthy taskRev timeWaited = do
                 waitForHealthy taskRev (timeWaited + waitTimeSeconds)
 
         else throwM $ HealthCheckFailure $ "Task failed to become healthy within allotted time"
+
+ensureSingleProcessNotBouncing :: TaskRevision -> Int -> Haitatsu ()
+ensureSingleProcessNotBouncing taskRev checksRemaining
+  | checksRemaining <= 0 =
+    echo Normal "  = Everything appears to be healthy. It does not look like the task is bouncing."
+
+  | otherwise = do
+    echo Normal ("  = " <> T.pack (show checksRemaining) <> " bounce checks remaining.")
+    status <- getTaskStatus (revision taskRev)
+
+    case status of
+      Right _ -> ensureSingleProcessNotBouncing taskRev (checksRemaining - 1)
+
+      Left err -> do
+        echo Normal ("    " <> T.pack err)
+        throwM $ HealthCheckFailure $ "Singleton task is not healthy. It appears to be bouncing."
 
 wait :: Int -> Haitatsu ()
 wait micros = Haitatsu (pure ()) (liftIO $ threadDelay micros)
