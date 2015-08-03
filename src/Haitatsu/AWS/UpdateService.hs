@@ -4,6 +4,7 @@ import            Control.Lens
 import            Control.Monad.Trans.AWS
 import            Data.Monoid
 import qualified  Data.Text as T
+import            Data.Typeable
 import            Network.AWS.ECS
 import qualified  Network.AWS.ECS as ECS
 
@@ -35,6 +36,17 @@ updateService taskRev =
 
     register update = Haitatsu (dry update) (wet update)
 
-    dry _ = pure ()
+    dry _ = do
+      fail <- asks simulateFailure
+
+      if fail
+        then throwM SimulatedUpdateFailure
+        else pure ()
+
     wet req = sendAWS req >> pure ()
 
+
+data SimulatedUpdateFailure = SimulatedUpdateFailure
+  deriving (Show, Typeable)
+
+instance Exception SimulatedUpdateFailure

@@ -15,11 +15,7 @@ data Command =
   | HealthCheck AWS.TaskRevision
 
 deliver :: Haitatsu ()
-deliver = do
-  AWS.initialStatus
-  taskRev <- AWS.registerTask
-  AWS.updateService taskRev
-  AWS.healthCheck taskRev
+deliver = AWS.deliver
 
 register :: Haitatsu ()
 register = void $ AWS.registerTask

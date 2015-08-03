@@ -5,8 +5,6 @@ module Haitatsu.AWS.CurrentDeployment
 
 import            Control.Lens
 import            Control.Monad.Trans.AWS
-import            Control.Monad.Writer
-import qualified  Data.DList as D
 import            Data.Maybe
 import            Data.Monoid
 import qualified  Data.Text as T
@@ -34,11 +32,11 @@ getCurrentDeployment =
 
        case result of
          Right deployment -> do
-           echo Normal $ "  = Done"
+           echo Normal  $ "  = Done"
            echo Verbose $ "    Task definition: " <> currentTaskDefinition deployment
            echo Verbose $ "    Running count  : " <> showT (currentRunningCount deployment)
            echo Verbose $ "    Desired count  : " <> showT (currentDesiredCount deployment)
-           echo Normal $ ""
+           echo Normal  $ ""
 
          Left err -> do
            echo Normal $ "  = Error: " <> err
@@ -56,7 +54,7 @@ getCurrentDeployment =
     doIt update = Haitatsu (dry update) (wet update)
 
     dry _ = do
-      tell $ D.singleton ("    this is a dry run - making up a deployment")
+      dryEcho "    this is a dry run - making up a deployment"
       pure $ Right $ CurrentDeployment {
           currentTaskDefinition = "dryrun-deployment:fake"
         , currentDesiredCount = 2

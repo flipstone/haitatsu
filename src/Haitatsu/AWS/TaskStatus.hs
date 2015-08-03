@@ -10,8 +10,6 @@ module Haitatsu.AWS.TaskStatus
 import            Control.Applicative
 import            Control.Concurrent
 import            Control.Lens
-import            Control.Monad.Writer
-import qualified  Data.DList as D
 import            Data.Foldable
 import            Data.Monoid
 import qualified  Data.Text as T
@@ -34,7 +32,7 @@ getTaskStatus selector =
     status cluster service = Haitatsu (dry cluster service) (wet cluster service)
 
     dry _ _ = do
-      tell $ D.singleton ("    this is a dry run - pretending the service is healthy")
+      dryEcho "    this is a dry run - pretending the service is healthy"
       pure $ Right (RunningCount 1)
 
     wet cluster service = taskStatus service selector

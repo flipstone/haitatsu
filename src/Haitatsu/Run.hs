@@ -7,7 +7,6 @@ import            System.Exit
 import            Haitatsu.AWS
 import            Haitatsu.Command
 import            Haitatsu.Config
-import            Haitatsu.Delivery
 import            Haitatsu.DryRun
 import            Haitatsu.Options
 import            Haitatsu.Types
@@ -50,6 +49,7 @@ loadRunData options config = do
   pure $ RunData (augmentContext options envConfig)
                  template
                  (optVerbosity options)
+                 (optIsDryRollback options)
 
 augmentContext :: Options -> EnvironmentConfig -> EnvironmentConfig
 augmentContext options config =

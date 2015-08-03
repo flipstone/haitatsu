@@ -14,6 +14,7 @@ import            Haitatsu.Types
 
 data Options = Options {
     optIsDryRun :: Bool
+  , optIsDryRollback :: Bool
   , optConfigFile :: FilePath
   , optEnvironment :: Environment
   , optVerbosity :: Verbosity
@@ -30,8 +31,13 @@ optRelativePath options path =
 options :: Parser Options
 options = Options
   <$> switch
-      ( long "dryrun"
+      ( long "dry-run"
      <> help "Don't actually do anything, but print what would be done"
+      )
+
+  <*> switch
+      ( long "dry-rollback"
+     <> help "Simulate a rollback during a dryrun"
       )
 
   <*> strOption

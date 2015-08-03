@@ -3,6 +3,7 @@ module Haitatsu.Types
   , DryRun
   , DryRunLog
   , runDryRun
+  , dryEcho
 
   , WetRun
   , runWetRun
@@ -71,6 +72,7 @@ data RunData = RunData {
     environmentConfig :: EnvironmentConfig
   , taskDefinitionTemplate :: Template
   , verbosity :: Verbosity
+  , simulateFailure :: Bool
   } deriving Show
 
 type DryRunLog = D.DList T.Text
@@ -85,10 +87,14 @@ newtype DryRun a = DryRun (ReaderT RunData
            , MonadReader RunData
            , MonadWriter DryRunLog
            , MonadThrow
+           , MonadCatch
            )
 
 runDryRun :: DryRun a -> RunData -> (Either SomeException a, DryRunLog)
 runDryRun (DryRun r) runData = runWriter (runCatchT (runReaderT r runData))
+
+dryEcho :: T.Text -> DryRun ()
+dryEcho = tell . D.singleton
 
 newtype WetRun a = WetRun (ReaderT RunData AWS a)
   deriving ( Functor
@@ -97,6 +103,7 @@ newtype WetRun a = WetRun (ReaderT RunData AWS a)
            , MonadReader RunData
            , MonadIO
            , MonadThrow
+           , MonadCatch
            )
 
 runWetRun :: WetRun a -> RunData -> Env -> IO a
@@ -130,12 +137,19 @@ instance MonadReader RunData Haitatsu where
 instance MonadThrow Haitatsu where
   throwM e = Haitatsu (throwM e) (throwM e)
 
+instance MonadCatch Haitatsu where
+  catch (Haitatsu dryAction wetAction) handler =
+      Haitatsu dry wet
+    where
+      dry = dryAction `catch` \e -> haitatsuDryRun (handler e)
+      wet = wetAction `catch` \e -> haitatsuWetRun (handler e)
+
 echo :: Verbosity -> T.Text -> Haitatsu ()
 echo v s = do
   currentVerbosity <- asks verbosity
 
   when (currentVerbosity >= v) $
-    Haitatsu (tell $ D.singleton s)
+    Haitatsu (dryEcho s)
              (liftIO $ putStrLn (T.unpack s))
 
 sendAWS :: AWSRequest a => a -> WetRun (Rs a)
