@@ -41,8 +41,8 @@ getTaskStatus selector =
 describeService :: T.Text -> T.Text -> WetRun DescribeServicesResponse
 describeService clusterName serviceName =
   sendAWS $ describeServices
-          & ds1Services .~ [serviceName]
-          & ds1Cluster .~ Just clusterName
+          & dServices .~ [serviceName]
+          & dCluster .~ Just clusterName
 
 type TaskStatus a = Either String a
 
@@ -51,7 +51,7 @@ findService :: T.Text
             -> DescribeServicesResponse
             -> TaskStatus ContainerService
 findService service rsp =
-    case filter isMatching (rsp ^. dsrServices) of
+    case filter isMatching (rsp ^. dssrsServices) of
     [] -> Left "Service not found!"
     [s] -> Right s
     _ -> Left "Multiple services found!"

@@ -35,6 +35,7 @@ import            Control.Monad.Reader
 import            Control.Monad.Trans.AWS
 import            Control.Monad.Writer
 import qualified  Data.Text as T
+import            Network.AWS (AWS)
 
 import            Data.Aeson.Substitution
 
@@ -108,7 +109,7 @@ newtype WetRun a = WetRun (ReaderT RunData AWS a)
 
 runWetRun :: WetRun a -> RunData -> Env -> IO a
 runWetRun (WetRun r) runData env =
-  either throwM pure =<<
+  runResourceT $
   runAWST env (runReaderT r runData)
 
 data Haitatsu a = Haitatsu {

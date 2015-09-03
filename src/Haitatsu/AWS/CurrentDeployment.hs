@@ -48,8 +48,8 @@ getCurrentDeployment =
     mkReq :: EnvironmentConfig -> DescribeServices
     mkReq config =
       describeServices
-        & ds1Services .~ [serviceName config]
-        & ds1Cluster .~ Just (clusterName config)
+        & dServices .~ [serviceName config]
+        & dCluster .~ Just (clusterName config)
 
     doIt update = Haitatsu (dry update) (wet update)
 
@@ -68,7 +68,7 @@ getCurrentDeployment =
 
 responseCurrentDeployment :: DescribeServicesResponse -> Either T.Text CurrentDeployment
 responseCurrentDeployment response =
-  case response ^. dsrServices of
+  case response ^. dssrsServices of
   [] -> Left "Service not found!"
   [s] -> serviceCurrentDeployment s
   _ -> Left "Multiple services found!"

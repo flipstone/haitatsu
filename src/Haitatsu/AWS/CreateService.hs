@@ -32,11 +32,11 @@ createService taskRev =
     mkReq :: EnvironmentConfig -> CreateService
     mkReq config =
       ECS.createService (serviceName config)
-        & (cs1Role .~ serviceRole config)
-        & (cs1Cluster .~ Just (clusterName config))
-        & (cs1DesiredCount .~ Just (desiredCount config))
-        & (cs1TaskDefinition .~ Just (formatRevision taskRev))
-        & (cs1LoadBalancers .~ map mkLoadBalancer (loadBalancers config))
+                        (formatRevision taskRev)
+                        (desiredCount config)
+        & (cRole .~ serviceRole config)
+        & (cCluster .~ Just (clusterName config))
+        & (cLoadBalancers .~ map mkLoadBalancer (loadBalancers config))
 
     register update = Haitatsu (dry update) (wet update)
 

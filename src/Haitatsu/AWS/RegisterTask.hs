@@ -3,6 +3,7 @@ module Haitatsu.AWS.RegisterTask where
 import            Control.Lens
 import            Control.Monad.Trans.AWS
 import            Data.Aeson
+import qualified  Data.Aeson as Aeson
 import            Data.Monoid
 import qualified  Data.Text as T
 import qualified  Data.Text.Encoding as E
@@ -44,7 +45,7 @@ registerTask =
 
     wet :: RegisterTaskDefinition -> WetRun TaskRevision
     wet req = do rs <- sendAWS req
-                 taskDef <- require "taskDefinition" (rs ^. rtdrTaskDefinition)
+                 taskDef <- require "taskDefinition" (rs ^. rtdrsTaskDefinition)
                  fam <- require "family" (taskDef ^. tdFamily)
                  rev <- require "revision" (taskDef ^. tdRevision)
 
@@ -62,8 +63,8 @@ buildTaskDefinition = do
   json <- substitute (configContext config) template
 
   case fromJSON json of
-    Error err -> throwM (IncompleteTaskDefinitionError err)
-    Success value -> pure value
+    Aeson.Error err -> throwM (IncompleteTaskDefinitionError err)
+    Aeson.Success value -> pure value
 
 
 instance FromJSON RegisterTaskDefinition where
