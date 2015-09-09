@@ -2,5 +2,8 @@ family: test-project
 containerDefinitions:
   - name: project
     image: company/project:${version}
+    environment:
+      - name: CONFIG
+        value: ${config}
 
 volumes: []

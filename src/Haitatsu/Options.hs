@@ -2,9 +2,11 @@ module Haitatsu.Options
   ( Options(..)
   , optRelativePath
   , runOptions
+  , readContext
   ) where
 
 import qualified  Data.Text as T
+import qualified  Data.Text.IO as T
 import            Options.Applicative
 import            System.FilePath
 
@@ -18,9 +20,22 @@ data Options = Options {
   , optConfigFile :: FilePath
   , optEnvironment :: Environment
   , optVerbosity :: Verbosity
-  , optContext :: Context
+  , optContext :: ContextOption
   , optCommand :: Command
   }
+
+data ContextOption = ContextInline Context
+                   | ContextFile FilePath
+
+readContext :: ContextOption -> IO Context
+readContext (ContextInline context) = pure context
+
+readContext (ContextFile path) = do
+  text <- T.readFile path
+
+  case parseContext $ text of
+    Right context -> pure $ context
+    Left err -> error $ "Error parsing " <> path <> ": " <> err
 
 optRelativePath :: Options -> FilePath -> FilePath
 optRelativePath options path =
@@ -65,7 +80,7 @@ options = Options
       ( long "context"
      <> short 'c'
      <> metavar "key1=value1,key2=value2,..."
-     <> value (contextList [])
+     <> value (ContextInline $ contextList [])
      <> help "Set context variables"
       )
 
@@ -118,11 +133,17 @@ runOptions main = execParser opts >>= main
        <> header "haitatsu - a simple ECS delivery tool"
         )
 
-optParseContext :: ReadM Context
+optParseContext :: ReadM ContextOption
 optParseContext = do
-  s <- str
-  case parseContext $ T.pack s of
-    Right context -> pure context
-    Left err -> readerError err
+  optString <- str
+
+  case optString of
+    ('@':path) ->
+      pure $ ContextFile path
+
+    _ ->
+      case parseContext $ T.pack optString of
+        Right context -> pure $ ContextInline context
+        Left err -> readerError $ "Error parsing inline context: " <> err
 
 

@@ -42,20 +42,22 @@ loadRunData :: Options -> HaitatsuConfig -> IO RunData
 loadRunData options config = do
   let env = optEnvironment options
 
+  context <- readContext $ optContext options
+
   envConfig <- maybe (missingEnv env) pure (getEnvConfig env config)
   template <- loadAeson (optRelativePath options $
                          taskDefinitionTemplateFile envConfig)
 
-  pure $ RunData (augmentContext options envConfig)
+  pure $ RunData (augmentContext context envConfig)
                  template
                  (optVerbosity options)
                  (optIsDryRollback options)
 
-augmentContext :: Options -> EnvironmentConfig -> EnvironmentConfig
-augmentContext options config =
+augmentContext :: Context -> EnvironmentConfig -> EnvironmentConfig
+augmentContext augmentation config =
     config { configContext = context }
   where
-    context = optContext options <> configContext config
+    context = augmentation <> configContext config
 
 missingEnv :: Environment -> IO a
 missingEnv env = do

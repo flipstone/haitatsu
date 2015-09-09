@@ -9,6 +9,7 @@ module Data.Aeson.Substitution
   ) where
 
 import            Control.Applicative
+import            Control.Monad
 import            Control.Monad.Catch
 import            Control.Monad.IO.Class
 import            Data.Aeson
@@ -18,6 +19,7 @@ import qualified  Data.ByteString.Lazy as LBS
 import qualified  Data.DList as D
 import            Data.Hashable
 import qualified  Data.HashMap.Strict as M
+import            Data.Maybe
 import            Data.Monoid
 import qualified  Data.Text as T
 import            Data.Typeable
@@ -127,10 +129,20 @@ instance FromJSON Template where
   parseJSON val = pure $ Literal val
 
 parseContext :: T.Text -> Either String Context
-parseContext = parseOnly context
+parseContext = parseOnly (context <* endOfInput)
 
 context :: Parser Context
-context = contextList <$> (keyValue `sepBy1` char ',')
+context =
+   contextList <$> catMaybes <$> (entry `sepBy` separator)
+ where
+   separator = void (char ',') <|> endOfLine
+
+entry :: Parser (Maybe (Variable, T.Text))
+entry = (Just <$> keyValue)
+    <|> (const Nothing <$> blank)
+
+blank :: Parser ()
+blank = skipWhile isHorizontalSpace
 
 keyValue :: Parser (Variable, T.Text)
 keyValue = do
@@ -144,5 +156,6 @@ contextString :: Parser T.Text
 contextString = takeWhile1 isValid
   where isValid ',' = False
         isValid '=' = False
+        isValid '\n' = False
         isValid _ = True
 
