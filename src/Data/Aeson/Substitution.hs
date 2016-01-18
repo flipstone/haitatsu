@@ -1,6 +1,7 @@
 module Data.Aeson.Substitution
   ( Template
   , Context
+  , ContextValue (..)
   , contextList
   , contextMap
   , parseContext
@@ -13,6 +14,8 @@ import            Control.Monad
 import            Control.Monad.Catch
 import            Control.Monad.IO.Class
 import            Data.Aeson
+import            Data.Aeson.Types (typeMismatch)
+import            Data.Attoparsec.Combinator
 import            Data.Attoparsec.Text
 import qualified  Data.Attoparsec.Text as Atto
 import qualified  Data.ByteString.Lazy as LBS
@@ -21,19 +24,43 @@ import            Data.Hashable
 import qualified  Data.HashMap.Strict as M
 import            Data.Maybe
 import            Data.Monoid
+import            Data.Scientific
 import qualified  Data.Text as T
 import            Data.Typeable
 import            Data.Vector
 
 type Variable = T.Text
 
-newtype Context = Context (M.HashMap Variable T.Text)
+data ContextValue =
+    ContextInt Integer
+  | ContextString T.Text
+  deriving Show
+
+forceTextValue :: ContextValue -> T.Text
+forceTextValue (ContextString t) = t
+forceTextValue (ContextInt i) = T.pack $ show i
+
+instance ToJSON ContextValue where
+  toJSON (ContextInt i) = toJSON i
+  toJSON (ContextString t) = toJSON t
+
+instance FromJSON ContextValue where
+  parseJSON (String t) = pure $ ContextString t
+  parseJSON (Number s) =
+    case floatingOrInteger s of
+      Right i -> pure $ ContextInt i
+      Left _ -> fail $ "Only strings and integers may be used as context values, not " <> show s
+
+  parseJSON j = typeMismatch "Only strings and integers may be used as context values" j
+
+
+newtype Context = Context (M.HashMap Variable ContextValue)
   deriving (Show, Monoid)
 
-contextMap :: M.HashMap Variable T.Text -> Context
+contextMap :: M.HashMap Variable ContextValue -> Context
 contextMap = Context
 
-contextList :: [(Variable, T.Text)] -> Context
+contextList :: [(Variable, ContextValue)] -> Context
 contextList = contextMap . M.fromList
 
 data StringTemplate =
@@ -43,11 +70,15 @@ data StringTemplate =
   deriving (Show, Eq)
 
 runTemplate :: Monad m
-            => (Variable -> m T.Text) -> StringTemplate -> m T.Text
-runTemplate lookup template =
-    T.concat <$> D.toList <$> go template D.empty
+            => (Variable -> m ContextValue) -> StringTemplate -> m ContextValue
+runTemplate lookup template = do
+    parts <- D.toList <$> go template D.empty
+
+    pure $ case parts of
+           [justOne] -> justOne
+           _ -> ContextString $ T.concat $ fmap forceTextValue parts
   where
-    go (StringLit s next) list = go next (D.snoc list s)
+    go (StringLit s next) list = go next (D.snoc list (ContextString s))
     go (StringVar v next) list = go next =<< (D.snoc list <$> lookup v)
     go StringEnd list = pure list
 
@@ -59,14 +90,14 @@ data Template =
   deriving (Show, Eq)
 
 substituteWith :: MonadThrow m
-               => (Variable -> m T.Text)
+               => (Variable -> m ContextValue)
                -> Template
                -> m Value
 substituteWith _ (Literal val) =
   pure val
 
 substituteWith lookup (Substitution template) =
-  String <$> runTemplate lookup template
+  toJSON <$> runTemplate lookup template
 
 substituteWith lookup (TArray vec) =
   Array <$> traverse (substituteWith lookup) vec
@@ -132,30 +163,43 @@ parseContext :: T.Text -> Either String Context
 parseContext = parseOnly (context <* endOfInput)
 
 context :: Parser Context
-context =
-   contextList <$> catMaybes <$> (entry `sepBy` separator)
- where
-   separator = void (char ',') <|> endOfLine
+context = contextList <$> catMaybes <$> (entry `sepBy` itemSeparator)
 
-entry :: Parser (Maybe (Variable, T.Text))
+itemSeparator :: Parser ()
+itemSeparator = void (char ',') <|> endOfLine
+
+entry :: Parser (Maybe (Variable, ContextValue))
 entry = (Just <$> keyValue)
     <|> (const Nothing <$> blank)
 
 blank :: Parser ()
 blank = skipWhile isHorizontalSpace
 
-keyValue :: Parser (Variable, T.Text)
+keyValue :: Parser (Variable, ContextValue)
 keyValue = do
   key <- contextString
   "="
-  value <- contextString
+  value <- contextValue
   pure (key, value)
 
 
 contextString :: Parser T.Text
 contextString = takeWhile1 isValid
   where isValid ',' = False
-        isValid '=' = False
         isValid '\n' = False
+        isValid '=' = False
+        isValid '"' = False
         isValid _ = True
+
+contextInt :: Parser Integer
+contextInt = decimal <* lookAhead (itemSeparator <|> endOfInput)
+
+contextValue :: Parser ContextValue
+contextValue =
+     (ContextString <$> quotedString)
+ <|> (ContextInt <$> contextInt)
+ <|> (ContextString <$> contextString)
+
+quotedString :: Parser T.Text
+quotedString = char '"' *> contextString <* char '"'
 

@@ -35,6 +35,7 @@ executable haitatsu
                        mtl == 2.2.1,
                        optparse-applicative == 0.11.0.2,
                        resourcet == 1.1.5,
+                       scientific == 0.3.3.8,
                        text == 1.2.1.1,
                        transformers == 0.4.2.0,
                        vector == 0.10.12.3,

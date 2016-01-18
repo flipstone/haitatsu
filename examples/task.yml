@@ -5,5 +5,8 @@ containerDefinitions:
     environment:
       - name: CONFIG
         value: ${config}
+    portMappings:
+      - containerPort: 8000
+        hostPort: ${port}
 
 volumes: []
