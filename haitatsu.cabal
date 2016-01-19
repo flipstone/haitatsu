@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                haitatsu
-version:             0.1.3.0
+version:             0.1.5.0
 synopsis:            A simple ECS Container delivery tool
 -- description:         
 license:             AllRightsReserved
