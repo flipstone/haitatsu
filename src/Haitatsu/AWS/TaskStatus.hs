@@ -11,6 +11,7 @@ import            Control.Applicative
 import            Control.Concurrent
 import            Control.Lens
 import            Data.Foldable
+import            Data.Maybe
 import            Data.Monoid
 import qualified  Data.Text as T
 import            Data.Typeable
@@ -88,18 +89,27 @@ deploymentStatus selector deployments =
   Just deployment -> do
     let desired = deployment ^. dDesiredCount
         running = deployment ^. dRunningCount
+        otherRunning = nonSelectedTasksRunning selector deployments
 
     when (desired /= running) $
       Left $ show desired <> " desired / " <>
              show running <> " running."
 
-    when (length deployments > 1) $
-      Left "Multiple deployments currently active."
+    when (otherRunning > 0) $
+      Left $ "Waiting for " <>  show otherRunning <>
+             " tasks from other revisions to stop."
 
     maybe (Left "No running count found!")
           (Right . RunningCount)
           running
 
+
+nonSelectedTasksRunning :: TaskSelector -> [Deployment] -> Int
+nonSelectedTasksRunning selector deployments =
+    sum counts
+  where
+    notSelected = filter (not . isSelected selector) deployments
+    counts = fromMaybe 0 . (^. dRunningCount) <$> notSelected
 
 taskStatus :: T.Text
            -> TaskSelector
