@@ -5,6 +5,7 @@ module Haitatsu.Options
   , readContext
   ) where
 
+import            Data.Monoid ((<>))
 import qualified  Data.Text as T
 import qualified  Data.Text.IO as T
 import            Options.Applicative
